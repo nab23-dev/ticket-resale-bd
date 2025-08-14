@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>পোস্ট ম্যানেজমেন্ট</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    /* Bottom nav style */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid #ddd;
+      padding: 6px 0;
+      z-index: 50;
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 12px;
+      color: #555;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .bottom-nav a:hover {
+      color: #2563eb;
+    }
+    .bottom-nav svg {
+      width: 22px; height: 22px;
+      margin-bottom: 2px;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, collection, query,
+      orderBy, onSnapshot, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import bcrypt from "https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/+esm";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDHuyETweQIGZA07iPuiaGoaPu6r11VFW4",
+      authDomain: "ticket-resale-bd.firebaseapp.com",
+      projectId: "ticket-resale-bd",
+      storageBucket: "ticket-resale-bd.firebasestorage.app",
+      messagingSenderId: "914250362494",
+      appId: "1:914250362494:web:64114d1db6ffcdced6322f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let postsUnsub = null;
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg, type = "info") {
+      const el = document.createElement("div");
+      el.textContent = msg;
+      el.className = "fixed right-6 bottom-20 bg-white px-4 py-2 rounded shadow-lg border z-50";
+      if (type === "error") el.classList.add("border-red-300", "text-red-600");
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2600);
+    }
+
+    async function loadSession() {
+      const m = localStorage.getItem("pm_user_mobile");
+      if (!m) return false;
+      try {
+        const snap = await getDoc(doc(db, "users", m));
+        if (!snap.exists()) {
+          localStorage.removeItem("pm_user_mobile");
+          return false;
+        }
+        currentUser = { mobile: m, ...snap.data() };
+        return true;
+      } catch {
+        localStorage.removeItem("pm_user_mobile");
+        return false;
+      }
+    }
+
+    function showLogin() {
+      $("auth-panel").classList.remove("hidden");
+      $("main-panel").classList.add("hidden");
+    }
+    function showPanel() {
+      $("auth-panel").classList.add("hidden");
+      $("main-panel").classList.remove("hidden");
+      $("profile_name").textContent = currentUser?.name || "-";
+      $("profile_mobile").textContent = currentUser?.mobile || "-";
+    }
+
+    async function loginSubmit(e) {
+      e.preventDefault();
+      const mobile = $("li_mobile").value.trim();
+      const password = $("li_password").value;
+      if (!mobile || !password) return toast("মোবাইল ও পাসওয়ার্ড দিন", "error");
+
+      const uref = doc(db, "users", mobile);
+      const usnap = await getDoc(uref);
+      if (!usnap.exists()) return toast("একাউন্ট পাওয়া যায়নি", "error");
+
+      const data = usnap.data();
+      const ok = await bcrypt.compare(password, data.passwordHash || "");
+      if (!ok) return toast("পাসওয়ার্ড মিলছেনা", "error");
+
+      currentUser = { mobile, ...data };
+      localStorage.setItem("pm_user_mobile", mobile);
+      showPanel();
+      startAllPostsListener();
+      toast("লগইন সফল");
+    }
+
+    function logout() {
+      localStorage.removeItem("pm_user_mobile");
+      currentUser = null;
+      stopPostsListener();
+      showLogin();
+      $("login-form").reset();
+    }
+
+    function startAllPostsListener() {
+      stopPostsListener();
+      const qAll = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+      postsUnsub = onSnapshot(qAll, (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        renderPosts(arr);
+      }, () => toast("পোস্ট লোড করতে সমস্যা হচ্ছে", "error"));
+    }
+    function stopPostsListener() {
+      if (postsUnsub) { postsUnsub(); postsUnsub = null; }
+      $("posts_list").innerHTML = "";
+    }
+
+    async function deletePost(id) {
+      if (!currentUser) return toast("প্রথমে লগইন করুন", "error");
+      if (!confirm("পোস্টটি মুছে ফেলতে চান?")) return;
+      try {
+        await deleteDoc(doc(db, "posts", id));
+        toast("পোস্ট মুছে ফেলা হয়েছে");
+      } catch {
+        toast("মুছতে সমস্যা হয়েছে", "error");
+      }
+    }
+
+    function renderPosts(posts) {
+      const root = $("posts_list");
+      root.innerHTML = "";
+      if (!posts.length) {
+        root.innerHTML = '<div class="text-gray-500 text-center">কোনো পোস্ট পাওয়া যায়নি।</div>';
+        return;
+      }
+      posts.forEach((p) => {
+        const journeyStr = p.journeyAt?.seconds
+          ? new Date(p.journeyAt.seconds * 1000).toLocaleString()
+          : p.journeyAt ? new Date(p.journeyAt).toLocaleString() : "-";
+        const isMine = currentUser && p.ownerMobile === currentUser.mobile;
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded-xl shadow border mb-4";
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="text-lg font-semibold">${escapeHtml(p.type || '-')} • ${escapeHtml(p.from || '-')} → ${escapeHtml(p.to || '-')}</div>
+              <div class="text-xs text-gray-500 mt-1">যাত্রার সময়: ${escapeHtml(journeyStr)}</div>
+              <div class="mt-2 text-sm text-gray-700">মন্তব্য: ${escapeHtml(p.comment || '-')}</div>
+              <div class="mt-2 flex gap-6 text-sm text-gray-700">
+                <span>মূল্য: <strong>${safeNum(p.originalPrice)} ৳</strong></span>
+                <span>বিক্রয়: <strong class="text-emerald-600">${safeNum(p.sellingPrice)} ৳</strong></span>
+                <span>টিকিট: <strong>${escapeHtml(String(p.ticketCount ?? '-'))}</strong></span>
+              </div>
+              <div class="mt-1 text-xs text-gray-400">পোস্টকারী: ${escapeHtml(p.ownerName || p.ownerMobile || '-') }</div>
+            </div>
+            ${isMine ? `<button data-id="${p.id}" class="pm-del bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm">ডিলিট</button>` : ""}
+          </div>
+        `;
+        root.appendChild(card);
+      });
+      root.querySelectorAll(".pm-del").forEach(btn => {
+        btn.addEventListener("click", () => deletePost(btn.getAttribute("data-id")));
+      });
+    }
+
+    function safeNum(n) { return Number(n || 0).toLocaleString(); }
+    function escapeHtml(s) {
+      return s?.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;") || "";
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      $("login-form").addEventListener("submit", loginSubmit);
+      $("logoutBtn").addEventListener("click", logout);
+      if (await loadSession()) {
+        showPanel();
+        startAllPostsListener();
+      } else {
+        showLogin();
+      }
+    });
+  </script>
+</head>
+<body class="bg-gray-100">
+  <!-- Login -->
+  <main id="auth-panel" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-2xl shadow w-full max-w-md border">
+      <h2 class="text-xl font-bold mb-4">লগইন</h2>
+      <form id="login-form" class="space-y-3">
+        <input id="li_mobile" type="text" placeholder="মোবাইল (+880...)" class="w-full border rounded px-3 py-2" required>
+        <input id="li_password" type="password" placeholder="পাসওয়ার্ড" class="w-full border rounded px-3 py-2" required>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md font-medium">লগইন</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Main -->
+  <main id="main-panel" class="hidden p-6 max-w-5xl mx-auto pb-20">
+    <header class="flex justify-between items-center mb-6">
+      <div>
+        <h2 id="profile_name" class="text-2xl font-bold"></h2>
+        <p class="text-gray-600">মোবাইল: <span id="profile_mobile"></span></p>
+      </div>
+      <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded-md">লগআউট</button>
+    </header>
+    <div id="posts_list"></div>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a href="https://railapp.railway.gov.bd" target="_blank">
+      <svg fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16M4 5h16M4 12h16"></path></svg>
+      টিকিট
+    </a>
+    <a href="index.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 12l2 2 4-4"></path></svg>
+      ফিড
+    </a>
+    <a href="profile.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"></circle><path d="M6 21v-2a6 6 0 0112 0v2"></path></svg>
+      প্রোফাইল
+    </a>
+  </nav>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticket Resale — Bangla</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .hidden { display: none; }
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #555;
+      text-decoration: none;
+    }
+    .bottom-nav svg {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 pb-16">
+
+  <!-- ====== AUTH PANEL ====== -->
+  <div id="auth-panel" class="p-6 max-w-md mx-auto mt-20 bg-white rounded shadow">
+    <h2 class="text-xl font-bold mb-4">লগইন বা সাইনআপ করুন</h2>
+
+    <!-- LOGIN CARD -->
+    <form id="login-form" class="space-y-4">
+      <input type="text" id="li_mobile" placeholder="মোবাইল" class="w-full p-2 border rounded" />
+      <input type="password" id="li_password" placeholder="পাসওয়ার্ড" class="w-full p-2 border rounded" />
+      <button class="w-full bg-blue-500 text-white p-2 rounded">লগইন</button>
+      <p class="text-sm mt-2">নতুন ব্যবহারকারী? <a href="#" id="show-signup" class="text-blue-500">সাইনআপ</a></p>
+    </form>
+
+    <!-- SIGNUP CARD -->
+    <form id="signup-form" class="space-y-4 hidden">
+      <input type="text" id="su_name" placeholder="নাম" class="w-full p-2 border rounded" />
+      <input type="text" id="su_mobile" placeholder="মোবাইল" class="w-full p-2 border rounded" />
+      <input type="text" id="su_address" placeholder="ঠিকানা" class="w-full p-2 border rounded" />
+      <select id="su_gender" class="w-full p-2 border rounded">
+        <option value="">লিঙ্গ নির্বাচন করুন</option>
+        <option value="পুরুষ">পুরুষ</option>
+        <option value="মহিলা">মহিলা</option>
+        <option value="অন্যান্য">অন্যান্য</option>
+      </select>
+      <input type="password" id="su_password" placeholder="পাসওয়ার্ড" class="w-full p-2 border rounded" />
+      <button class="w-full bg-green-500 text-white p-2 rounded">সাইনআপ</button>
+      <p class="text-sm mt-2">ইতিমধ্যে একাউন্ট আছে? <a href="#" id="show-login" class="text-blue-500">লগইন</a></p>
+    </form>
+  </div>
+
+  <!-- ====== MAIN PANEL ====== -->
+  <div id="main-panel" class="hidden p-6 max-w-3xl mx-auto mt-10">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold">প্রোফাইল</h2>
+      <button id="logout-btn" class="bg-red-500 text-white px-4 py-1 rounded">লগআউট</button>
+    </div>
+
+    <div class="mb-6 space-y-1">
+      <p>নাম: <span id="profile_name">-</span></p>
+      <p>মোবাইল: <span id="profile_mobile">-</span></p>
+      <p>ঠিকানা: <span id="profile_address">-</span></p>
+      <p>লিঙ্গ: <span id="profile_gender">-</span></p>
+    </div>
+
+    <!-- CREATE POST -->
+    <form id="post-form" class="bg-white p-4 rounded shadow space-y-3">
+      <h3 class="font-bold">নতুন টিকিট পোস্ট</h3>
+      <select id="p_type" class="w-full p-2 border rounded">
+        <option value="">যাত্রার ধরন নির্বাচন করুন</option>
+        <option value="ট্রেন">ট্রেন</option>
+        <option value="বাস">বাস</option>
+      </select>
+      <input type="text" id="p_from" placeholder="যাত্রা শুরুর স্থান" class="w-full p-2 border rounded" />
+      <input type="text" id="p_to" placeholder="যাত্রার গন্তব্য" class="w-full p-2 border rounded" />
+      <input type="date" id="p_date" class="w-full p-2 border rounded" />
+      <input type="time" id="p_time" class="w-full p-2 border rounded" />
+      <input type="number" id="p_original" placeholder="মূল মূল্য" class="w-full p-2 border rounded" />
+      <input type="number" id="p_selling" placeholder="বিক্রয় মূল্য" class="w-full p-2 border rounded" />
+      <input type="number" id="p_count" placeholder="টিকিট সংখ্যা" class="w-full p-2 border rounded" />
+      <textarea id="p_comment" placeholder="মন্তব্য (ঐচ্ছিক)" class="w-full p-2 border rounded"></textarea>
+      <button class="w-full bg-blue-500 text-white p-2 rounded">পোস্ট তৈরি করুন</button>
+    </form>
+
+    <!-- আমার পোস্ট সমূহ বাটন -->
+    <div class="mt-4">
+      <a href="posts.html" class="w-full block text-center bg-green-500 text-white p-2 rounded">আমার পোস্ট সমূহ</a>
+    </div>
+
+    <!-- USER POSTS LIST -->
+    <div id="posts_list" class="mt-6 space-y-2"></div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a href="https://railapp.railway.gov.bd" target="_blank">
+      <svg fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16M4 5h16M4 12h16"></path></svg>
+      টিকিট
+    </a>
+    <a href="index.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 12l2 2 4-4"></path></svg>
+      ফিড
+    </a>
+    <a href="profile.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"></circle><path d="M6 21v-2a6 6 0 0112 0v2"></path></svg>
+      প্রোফাইল
+    </a>
+  </nav>
+
+  <!-- TOAST -->
+  <script>
+    const toast = (msg, type="info") => {
+      const el = document.createElement("div");
+      el.textContent = msg;
+      el.className = "fixed right-6 bottom-20 bg-white px-4 py-2 rounded shadow-lg border z-50";
+      if(type==="error") el.classList.add("border-red-300","text-red-600");
+      document.body.appendChild(el);
+      setTimeout(()=> el.remove(), 3000);
+    };
+  </script>
+
+  <!-- FIREBASE & APP LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import bcrypt from "https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/+esm";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDHuyETweQIGZA07iPuiaGoaPu6r11VFW4",
+      authDomain: "ticket-resale-bd.firebaseapp.com",
+      projectId: "ticket-resale-bd",
+      storageBucket: "ticket-resale-bd.firebasestorage.app",
+      messagingSenderId: "914250362494",
+      appId: "1:914250362494:web:64114d1db6ffcdced6322f"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    const $ = id => document.getElementById(id);
+
+    const showSection = id => ["auth-panel","main-panel"].forEach(s => $(s).classList.add("hidden")) || $(id).classList.remove("hidden");
+
+    const loadSession = async () => {
+      const m = localStorage.getItem("tr_user_mobile");
+      if(m){
+        const snap = await getDoc(doc(db,"users",m));
+        if(snap.exists()) { currentUser = { mobile: m, ...snap.data() }; return true; }
+        localStorage.removeItem("tr_user_mobile");
+      }
+      return false;
+    };
+
+    const renderProfile = () => {
+      if(!currentUser) return;
+      $("profile_name").textContent = currentUser.name;
+      $("profile_mobile").textContent = currentUser.mobile;
+      $("profile_address").textContent = currentUser.address;
+      $("profile_gender").textContent = currentUser.gender;
+    };
+
+    $("show-signup").onclick = e => { e.preventDefault(); $("login-form").classList.add("hidden"); $("signup-form").classList.remove("hidden"); };
+    $("show-login").onclick = e => { e.preventDefault(); $("login-form").classList.remove("hidden"); $("signup-form").classList.add("hidden"); };
+
+    $("signup-form").onsubmit = async e => {
+      e.preventDefault();
+      const name = $("su_name").value.trim();
+      const mobile = $("su_mobile").value.trim();
+      const address = $("su_address").value.trim();
+      const gender = $("su_gender").value;
+      const password = $("su_password").value;
+      if(!name||!mobile||!address||!gender||!password){ toast("সব ফিল্ড পূরণ করুন","error"); return; }
+      if(!/^\+?\d{8,15}$/.test(mobile)){ toast("সঠিক মোবাইল দিন","error"); return; }
+      if((await getDoc(doc(db,"users",mobile))).exists()){ toast("মোবাইলে অ্যাকাউন্ট আছে","error"); return; }
+      const hash = await bcrypt.hash(password,10);
+      await setDoc(doc(db,"users",mobile),{ name,mobile,address,gender,passwordHash:hash,createdAt:serverTimestamp() });
+      toast("সাইনআপ সফল, লগইন করুন");
+      $("signup-form").reset();
+      $("signup-form").classList.add("hidden"); $("login-form").classList.remove("hidden");
+    };
+
+    $("login-form").onsubmit = async e => {
+      e.preventDefault();
+      const mobile = $("li_mobile").value.trim();
+      const password = $("li_password").value;
+      if(!mobile||!password){ toast("মোবাইল ও পাসওয়ার্ড দিন","error"); return; }
+      const snap = await getDoc(doc(db,"users",mobile));
+      if(!snap.exists()){ toast("একাউন্ট পাওয়া যায়নি","error"); return; }
+      const ok = await bcrypt.compare(password,snap.data().passwordHash||"");
+      if(!ok){ toast("পাসওয়ার্ড মিলছেনা","error"); return; }
+      currentUser = { mobile, ...snap.data() };
+      localStorage.setItem("tr_user_mobile",mobile);
+      renderProfile();
+      showSection("main-panel");
+      startUserPostsListener();
+      toast("লগইন সফল");
+    };
+
+    $("logout-btn").onclick = () => {
+      localStorage.removeItem("tr_user_mobile"); currentUser=null;
+      stopUserPostsListener();
+      showSection("auth-panel");
+    };
+
+    let postsUnsub = null;
+    const renderPosts = arr => {
+      $("posts_list").innerHTML = arr.map(p=>`<div class="bg-white p-3 rounded shadow"><p>যাত্রা: ${p.from} → ${p.to}</p><p>মূল্য: ${p.sellingPrice} টাকা</p><p>টিকিট: ${p.ticketCount}</p></div>`).join("");
+    };
+
+    const startUserPostsListener = () => {
+      if(!currentUser) return;
+      const q = query(collection(db,"posts"),where("ownerMobile","==",currentUser.mobile),orderBy("createdAt","desc"));
+      postsUnsub = onSnapshot(q,snap=>{ renderPosts(snap.docs.map(d=>({ id:d.id,...d.data() }))) });
+    };
+    const stopUserPostsListener = () => { if(postsUnsub){ postsUnsub(); postsUnsub=null; } $("posts_list").innerHTML=""; };
+
+    $("post-form").onsubmit = async e => {
+      e.preventDefault();
+      if(!currentUser){ toast("প্রথমে লগইন করুন","error"); return; }
+      const type = $("p_type").value;
+      const from=$("p_from").value.trim(), to=$("p_to").value.trim(),
+            date=$("p_date").value, time=$("p_time").value, orig=$("p_original").value,
+            sell=$("p_selling").value, count=$("p_count").value, comment=$("p_comment").value.trim();
+      if(!type||!from||!to||!date||!time||!orig||!sell||!count){ toast("সব বাধ্যতামূলক ফিল্ড পূরণ করুন","error"); return; }
+      if(Number(count)<=0){ toast("টিকিট সংখ্যা ধনাত্মক হতে হবে","error"); return; }
+      const journeyAt = new Date(`${date}T${time}`);
+      if(isNaN(journeyAt)){ toast("ভুল তারিখ/সময়","error"); return; }
+      await addDoc(collection(db,"posts"),{
+        ownerMobile:currentUser.mobile,ownerName:currentUser.name,type,from,to,
+        journeyAt,originalPrice:Number(orig),sellingPrice:Number(sell),ticketCount:Number(count),
+        comment,createdAt:serverTimestamp()
+      });
+      $("post-form").reset();
+      toast("পোস্ট তৈরি হয়েছে");
+    };
+
+    loadSession().then(ok=>{ if(ok){ renderProfile(); showSection("main-panel"); startUserPostsListener(); } else { showSection("auth-panel"); } });
+  </script>
+
+</body>
+</html>
